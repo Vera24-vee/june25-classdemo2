@@ -1,0 +1,50 @@
+name: Django CI/CD Pipeline
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout your code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      # 3. Install dependencies (including Django)
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install Django==5.2.4
+          pip install -r requirements.txt
+          pip install pylint bandit
+
+      # 4. Run Django tests
+      - name: Run Django tests
+        run: python manage.py test
+
+      # 5. Lint your code with pylint
+      - name: Lint with pylint
+        run: |
+          echo "Running pylint..."
+          pylint your_app/  # Replace `your_app` with your Django app folder name
+
+      # 6. Security scan with bandit (optional)
+      - name: Scan for security issues
+        run: |
+          echo "Running bandit..."
+          bandit -r your_app/  # Replace `your_app` with your Django app folder name
+
+      # 7. Package or prepare for deployment
+      - name: Package the app
+        run: |
+          echo "Packaging project..."
+          zip -r build.zip . -x '*.git*'
