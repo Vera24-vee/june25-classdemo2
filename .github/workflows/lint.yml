@@ -32,4 +32,4 @@ jobs:
       - name: Run Pylint
         run: |
           . $VENV/bin/activate
-          pylint june25_classdemo2/
+          pylint june25_classdemo2
