@@ -1,9 +1,0 @@
-name: Print My Name
-on: [push]
-
-jobs:
-  print-name:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Print My Name
-        run: echo "Kabwaga Veronica Amooti"
