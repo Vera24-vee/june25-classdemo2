@@ -137,7 +137,7 @@ jobs:
           zip -r build.zip . -x '*.git*' '*venv*' '*.pyc' '*__pycache__*'
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: django-app-build
           path: build.zip
