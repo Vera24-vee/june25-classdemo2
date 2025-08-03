@@ -5,46 +5,150 @@ on:
   pull_request:
 
 jobs:
-  build-test-lint:
+  setup-and-test:
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Checkout your code
+      # Setup
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Set up Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
 
-      # 3. Install dependencies (including Django)
+      - name: Create virtual environment
+        run: |
+          python -m venv venv
+          echo "VENV=venv" >> $GITHUB_ENV
+
       - name: Install dependencies
         run: |
+          . $VENV/bin/activate
           python -m pip install --upgrade pip
           pip install Django==5.2.4
           pip install -r requirements.txt
           pip install pylint bandit
 
-      # 4. Run Django tests
+      # Run Tests
       - name: Run Django tests
-        run: python manage.py test
+        run: |
+          . $VENV/bin/activate
+          python manage.py test
 
-      # 5. Lint your code with pylint
+  linting:
+    runs-on: ubuntu-latest
+    needs: setup-and-test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          . venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install Django==5.2.4
+          pip install -r requirements.txt
+          pip install pylint
+
+      # Pylint
       - name: Lint with pylint
         run: |
+          . venv/bin/activate
           echo "Running pylint..."
-          pylint your_app/  # Replace `your_app` with your Django app folder name
+          pylint june25_classdemo2/
 
-      # 6. Security scan with bandit (optional)
-      - name: Scan for security issues
+  scanning:
+    runs-on: ubuntu-latest
+    needs: linting
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
         run: |
-          echo "Running bandit..."
-          bandit -r your_app/  # Replace `your_app` with your Django app folder name
+          python -m venv venv
+          . venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install Django==5.2.4
+          pip install -r requirements.txt
+          pip install bandit
 
-      # 7. Package or prepare for deployment
-      - name: Package the app
+      # Scanning
+      - name: Security scan with bandit
+        run: |
+          . venv/bin/activate
+          echo "Running bandit security scan..."
+          bandit -r june25_classdemo2/
+
+  package:
+    runs-on: ubuntu-latest
+    needs: scanning
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Package
+      - name: Package the application
         run: |
           echo "Packaging project..."
-          zip -r build.zip . -x '*.git*'
+          zip -r build.zip . -x '*.git*' '*venv*' '*.pyc' '*__pycache__*'
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: django-app-build
+          path: build.zip
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: setup-and-test
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          . venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install Django==5.2.4
+          pip install -r requirements.txt
+
+      # Test again before deploy
+      - name: Run tests before deploy
+        run: |
+          . venv/bin/activate
+          python manage.py test
+
+      # Refactory step (code cleanup/optimization)
+      - name: Refactory - Code optimization
+        run: |
+          . venv/bin/activate
+          echo "Running refactory optimizations..."
+          # Add any code refactoring or optimization steps here
+          python manage.py check --deploy
+
+      # Deploy step
+      - name: Deploy application
+        run: |
+          echo "Deploying application..."
+          # Add your deployment commands here
+          # This could be deploying to a server, container registry, etc.
